@@ -702,6 +702,9 @@ html, body {
   background: rgba(255,255,255,0.15);
   border-color: rgba(255,255,255,0.2);
 }
+.report-back-btn {
+  font-size: 20px;
+}
 
 .r-row {
   display: flex;
@@ -874,6 +877,7 @@ html, body {
       <div class="report-date" id="reportDate"></div>
       <div class="report-nav">
         <button class="nav-btn" id="rBtnPrev" onclick="reportNavPrev()">&#8249;</button>
+        <button class="nav-btn report-back-btn" onclick="goBackFromReport()">&#8962;</button>
         <button class="nav-btn" id="rBtnNext" onclick="reportNavNext()">&#8250;</button>
       </div>
     </div>
@@ -884,8 +888,7 @@ html, body {
         <div class="r-row"><div class="r-icon">🤍</div><div class="r-label">Mal geholfen</div><div class="r-val" id="rH">0</div></div>
         <div class="r-row"><div class="r-icon">😊</div><div class="r-label">Wie war dein Tag?</div><div class="r-val" id="rM">—</div></div>
       </div>
-      <div class="report-btns">
-        <button class="btn-solid" onclick="goBackFromReport()">← Zurück</button>
+      <div class="report-btns" style="grid-template-columns:1fr">
         <button class="btn-soft" onclick="resetDay()">Tag zurücksetzen</button>
       </div>
     </div>

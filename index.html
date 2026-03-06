@@ -375,9 +375,11 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  min-height: 160px;
 }
 
 /* Subtle color tints per category */
@@ -392,8 +394,18 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 0;
   width: 100%;
+}
+
+.c-num {
+  font-size: 50px;
+  font-weight: 900;
+  color: var(--cream);
+  min-width: 0;
+  text-align: center;
+  line-height: 1;
+  padding: 0 6px;
 }
 
 .c-btn {
@@ -415,14 +427,6 @@ html, body {
 }
 .c-btn:active { transform: scale(0.85); color: var(--cream); }
 
-.c-num {
-  font-size: 50px;
-  font-weight: 900;
-  color: var(--cream);
-  min-width: 52px;
-  text-align: center;
-  line-height: 1;
-}
 .c-num.bump { animation: bump 0.16s ease; }
 @keyframes bump { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} }
 
@@ -587,6 +591,17 @@ html, body {
   grid-template-columns: 1fr 1fr;
   gap: 10px;
   animation: fadeUp 0.5s ease 0.55s both;
+}
+
+.report-nav {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  justify-content: center;
+}
+.report-nav .nav-btn {
+  background: rgba(255,255,255,0.15);
+  border-color: rgba(255,255,255,0.2);
 }
 
 .r-row {
@@ -756,6 +771,10 @@ html, body {
       <div class="report-tag">Tagesbericht</div>
       <div class="report-hi" id="reportHi">Super gemacht!</div>
       <div class="report-date" id="reportDate"></div>
+      <div class="report-nav">
+        <button class="nav-btn" id="rBtnPrev" onclick="reportNavPrev()">&#8249;</button>
+        <button class="nav-btn" id="rBtnNext" onclick="reportNavNext()">&#8250;</button>
+      </div>
     </div>
     <div class="report-body">
       <div class="report-card">
@@ -918,20 +937,38 @@ function animateCount(elId, target) {
 // REPORT
 function showReport(key) {
   reportingKey = key;
+  const todayK = todayKey();
+  const yesterdayK = offsetKey(todayK, -1);
   const data = getDay(key);
   const moods = ['','😐','🙂','😁'];
   document.getElementById('reportHi').innerHTML = 'Super gemacht,<br>' + userName + '!';
   document.getElementById('reportDate').textContent = fmtDate(key);
   document.getElementById('rM').textContent = moods[data.mood] || '—';
-  // set initial to 0 before animating
   ['rK','rP','rH'].forEach(id => { document.getElementById(id).textContent = '0'; });
+
+  // ‹ visible when viewing today and yesterday is also done
+  const hasPrev = (key === todayK) && days[yesterdayK] && getDay(yesterdayK).done;
+  // › visible when viewing yesterday and today is also done
+  const hasNext = (key === yesterdayK) && days[todayK] && getDay(todayK).done;
+  document.getElementById('rBtnPrev').classList.toggle('ghost', !hasPrev);
+  document.getElementById('rBtnNext').classList.toggle('ghost', !hasNext);
+
   show('report');
-  // animate numbers after screen appears
   setTimeout(() => {
     animateCount('rK', data.kartons);
     animateCount('rP', data.pipes);
     animateCount('rH', data.helfen);
   }, 350);
+}
+
+function reportNavPrev() {
+  const yesterdayK = offsetKey(todayKey(), -1);
+  if (days[yesterdayK] && getDay(yesterdayK).done) showReport(yesterdayK);
+}
+
+function reportNavNext() {
+  const todayK = todayKey();
+  if (days[todayK] && getDay(todayK).done) showReport(todayK);
 }
 
 function goBackFromReport() {

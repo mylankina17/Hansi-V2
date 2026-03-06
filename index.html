@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Hansi">
+<meta name="theme-color" content="#1F3FAF">
+<title>Hansi</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --blue-dark: #133188;
+  --blue: #3857B2;
+  --blue-grad-top: #3857B2;
+  --blue-grad-bot: #133188;
+  --cream: #ebded1;
+  --cream-bg: #ede8df;
+  --glass: rgba(255,255,255,0.11);
+  --glass-border: rgba(255,255,255,0.16);
+  --muted: rgba(235,222,209,0.5);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
+
+html, body {
+  font-family: 'Nunito', sans-serif;
+  height: 100%;
+  overflow: hidden;
+  background: var(--blue-dark);
+}
+
+/* ── BG ── */
+.bluebg {
+  background: linear-gradient(175deg, #3857B2 0%, #133188 100%);
+}
+
+/* ════════════════════════════
+   SCREEN TRANSITIONS
+════════════════════════════ */
+.screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.4,0,0.2,1);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  transform: translateY(18px);
+}
+.screen.active {
+  opacity: 1;
+  pointer-events: all;
+  transform: translateY(0);
+}
+.screen.slide-out {
+  opacity: 0;
+  transform: translateY(-18px);
+  pointer-events: none;
+}
+
+/* Cards stagger in when main screen loads */
+.card, .mood-card, .erledigt {
+  animation: cardIn 0.5s cubic-bezier(0.34,1.2,0.64,1) both;
+}
+.grid2:first-of-type .card:nth-child(1) { animation-delay: 0.05s; }
+.grid2:first-of-type .card:nth-child(2) { animation-delay: 0.12s; }
+.grid2:last-of-type .card:nth-child(1)  { animation-delay: 0.19s; }
+.grid2:last-of-type .card:nth-child(2)  { animation-delay: 0.26s; }
+.erledigt { animation-delay: 0.32s; }
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Big number pop when +/- pressed */
+.c-num.bump { animation: bigBump 0.22s cubic-bezier(0.34,1.8,0.64,1); }
+@keyframes bigBump {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+
+/* Erledigt button pulse */
+.erledigt { position: relative; overflow: hidden; }
+.erledigt::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.3);
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 0.3s, transform 0.3s;
+}
+.erledigt:active::after { opacity: 1; transform: scale(1); }
+
+/* Report rows slide in */
+.r-row {
+  animation: slideInRow 0.4s cubic-bezier(0.4,0,0.2,1) both;
+}
+.r-row:nth-child(1) { animation-delay: 0.1s; }
+.r-row:nth-child(2) { animation-delay: 0.18s; }
+.r-row:nth-child(3) { animation-delay: 0.26s; }
+.r-row:nth-child(4) { animation-delay: 0.34s; }
+
+@keyframes slideInRow {
+  from { opacity: 0; transform: translateX(-16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Report header slides down */
+.report-top {
+  animation: slideDown 0.5s cubic-bezier(0.34,1.2,0.64,1) 0.05s both;
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ════════════════════════════
+   SPLASH
+════════════════════════════ */
+#splash { background: linear-gradient(175deg, #3857B2 0%, #133188 100%); z-index: 50; }
+
+#splashLogoWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: splashPop 0.7s cubic-bezier(0.34,1.4,0.64,1) 0.2s both;
+}
+
+@keyframes splashPop {
+  from { opacity: 0; transform: scale(0.75); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+#splashSVG {
+  width: 210px;
+  height: 67px;
+  display: block;
+}
+
+/* ════════════════════════════
+   ENTER NAME
+════════════════════════════ */
+#enter-name {
+  background: linear-gradient(175deg, #3857B2 0%, #133188 100%);
+  padding: 48px 32px;
+  gap: 0;
+}
+
+.name-q {
+  color: var(--cream);
+  font-size: 34px;
+  font-weight: 900;
+  text-align: center;
+  line-height: 1.25;
+  margin-bottom: 44px;
+}
+
+.glass-input {
+  width: 100%;
+  max-width: 320px;
+  background: var(--glass);
+  border: 1.5px solid var(--glass-border);
+  border-radius: 20px;
+  padding: 18px 22px;
+  color: var(--cream);
+  font-family: 'Nunito', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  outline: none;
+  text-align: center;
+  margin-bottom: 20px;
+  -webkit-appearance: none;
+  backdrop-filter: blur(16px);
+}
+.glass-input::placeholder { color: rgba(235,222,209,0.3); }
+.glass-input:focus { border-color: rgba(235,222,209,0.4); }
+
+.cream-btn {
+  background: var(--cream);
+  color: var(--blue-dark);
+  border: none;
+  border-radius: 20px;
+  padding: 19px 0;
+  width: 100%;
+  max-width: 320px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 19px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.2);
+  transition: transform 0.1s;
+}
+.cream-btn:active { transform: scale(0.96); }
+
+/* ════════════════════════════
+   WELCOME
+════════════════════════════ */
+#welcome {
+  background: linear-gradient(175deg, #3857B2 0%, #133188 100%);
+  gap: 0;
+  padding: 0 32px;
+}
+
+.welcome-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.welcome-h {
+  width: 44px;
+  height: 44px;
+  margin-bottom: 16px;
+  animation: popIn 0.5s cubic-bezier(0.34,1.5,0.64,1) 0.1s both;
+}
+
+.welcome-title {
+  color: var(--cream);
+  font-size: 30px;
+  font-weight: 900;
+  text-align: center;
+  line-height: 1.15;
+  animation: fadeUp 0.5s ease 0.3s both;
+  margin-bottom: 10px;
+}
+
+.welcome-sub {
+  color: var(--muted);
+  font-size: 16px;
+  font-weight: 700;
+  animation: fadeUp 0.5s ease 0.45s both;
+  margin-bottom: 32px;
+}
+
+/* Three dots loader */
+.progress-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  height: auto;
+  overflow: visible;
+  animation: fadeUp 0.5s ease 0.6s both;
+}
+.progress-bar::after { display: none; }
+.progress-fill { display: none; }
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(235,222,209,0.35);
+  animation: dotPulse 1.4s ease-in-out infinite;
+}
+.dot:nth-child(1) { animation-delay: 0s; }
+.dot:nth-child(2) { animation-delay: 0.22s; }
+.dot:nth-child(3) { animation-delay: 0.44s; }
+
+@keyframes dotPulse {
+  0%, 80%, 100% { background: rgba(235,222,209,0.2); transform: scale(0.8); }
+  40% { background: rgba(235,222,209,0.95); transform: scale(1.2); }
+}
+@keyframes popIn { from{opacity:0;transform:scale(0.4)} to{opacity:1;transform:scale(1)} }
+@keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+
+/* ════════════════════════════
+   MAIN
+════════════════════════════ */
+#main {
+  background: linear-gradient(175deg, #3857B2 0%, #133188 100%);
+  justify-content: flex-start;
+  padding: 0;
+  align-items: stretch;
+}
+
+.main-scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 60px 20px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+}
+
+.main-top {
+  width: 100%;
+  text-align: center;
+}
+
+.main-greeting {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.main-title {
+  color: var(--cream);
+  font-size: 36px;
+  font-weight: 900;
+  line-height: 1.1;
+  margin-bottom: 12px;
+}
+
+.date-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.nav-btn {
+  background: var(--glass);
+  border: 1.5px solid var(--glass-border);
+  border-radius: 12px;
+  width: 38px;
+  height: 38px;
+  color: var(--cream);
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s, opacity 0.2s;
+  flex-shrink: 0;
+}
+.nav-btn:active { transform: scale(0.9); }
+.nav-btn.ghost { opacity: 0; pointer-events: none; }
+
+.main-date {
+  color: var(--cream);
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  flex: 1;
+}
+
+/* Counter grid */
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+}
+
+.card {
+  background: var(--glass);
+  border: 1.5px solid var(--glass-border);
+  border-radius: 20px;
+  padding: 18px 14px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Subtle color tints per category */
+.card-blue   { background: rgba(80,130,255,0.18); border-color: rgba(120,160,255,0.25); }
+.card-indigo { background: rgba(120,80,255,0.18); border-color: rgba(160,120,255,0.25); }
+.card-teal   { background: rgba(60,180,180,0.18); border-color: rgba(80,210,210,0.25); }
+.card-violet { background: rgba(200,80,180,0.18); border-color: rgba(220,120,200,0.25); }
+
+.card-icon { font-size: 26px; line-height: 1; }
+
+.card-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.c-btn {
+  background: none;
+  border: none;
+  color: rgba(235,222,209,0.65);
+  font-size: 32px;
+  font-weight: 300;
+  cursor: pointer;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Nunito', sans-serif;
+  transition: transform 0.1s, color 0.1s;
+  line-height: 0.8;
+  padding-bottom: 2px;
+}
+.c-btn:active { transform: scale(0.85); color: var(--cream); }
+
+.c-num {
+  font-size: 50px;
+  font-weight: 900;
+  color: var(--cream);
+  min-width: 52px;
+  text-align: center;
+  line-height: 1;
+}
+.c-num.bump { animation: bump 0.16s ease; }
+@keyframes bump { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} }
+
+.card-lbl {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+/* mood card */
+.mood-card {
+  background: rgba(200,80,180,0.15);
+  border: 1.5px solid rgba(220,120,200,0.22);
+  border-radius: 20px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  width: 100%;
+}
+
+.mood-lbl {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.mood-opts {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+}
+
+.mood-opt {
+  flex: 1;
+  background: rgba(255,255,255,0.07);
+  border: 2px solid transparent;
+  border-radius: 12px;
+  padding: 8px 4px;
+  font-size: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.14s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  min-height: 44px;
+}
+.mood-opt:active { transform: scale(0.92); }
+.mood-opt.on { background: rgba(235,222,209,0.18); border-color: rgba(235,222,209,0.45); transform: scale(1.08); }
+
+.erledigt {
+  background: var(--cream);
+  color: var(--blue-dark);
+  border: none;
+  border-radius: 20px;
+  padding: 19px;
+  width: 100%;
+  font-family: 'Nunito', sans-serif;
+  font-size: 19px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+  transition: transform 0.1s;
+}
+.erledigt:active { transform: scale(0.97); }
+
+/* ════════════════════════════
+   REPORT
+════════════════════════════ */
+#report {
+  background: var(--cream-bg);
+  justify-content: flex-start;
+  padding: 0;
+  align-items: stretch;
+}
+
+.report-scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.report-top {
+  background: linear-gradient(175deg, #3857B2 0%, #133188 100%);
+  padding: 60px 32px 36px;
+  border-radius: 0 0 32px 32px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: slideDown 0.5s cubic-bezier(0.34,1.2,0.64,1) 0.05s both;
+}
+
+.report-tag {
+  color: rgba(235,222,209,0.5);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  animation: fadeUp 0.5s ease 0.1s both;
+}
+
+.report-hi {
+  color: var(--cream);
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 1.2;
+  margin-bottom: 8px;
+  animation: fadeUp 0.55s cubic-bezier(0.34,1.2,0.64,1) 0.2s both;
+}
+
+.report-body {
+  flex: 1;
+  padding: 28px 22px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.report-date {
+  color: var(--cream);
+  font-size: 20px;
+  font-weight: 800;
+  text-align: center;
+  animation: fadeUp 0.5s ease 0.3s both;
+  background: rgba(255,255,255,0.12);
+  border-radius: 14px;
+  padding: 10px 20px;
+  margin-top: 10px;
+  display: inline-block;
+}
+
+.report-card {
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 2px 20px rgba(26,47,160,0.08);
+  animation: fadeUp 0.5s cubic-bezier(0.34,1.2,0.64,1) 0.35s both;
+}
+
+.report-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  animation: fadeUp 0.5s ease 0.55s both;
+}
+
+.r-row {
+  display: flex;
+  align-items: center;
+  padding: 16px 22px;
+  gap: 14px;
+  animation: fadeUp 0.4s ease both;
+}
+.r-row + .r-row { border-top: 1px solid rgba(26,47,160,0.07); }
+.r-row:nth-child(1) { animation-delay: 0.05s; }
+.r-row:nth-child(2) { animation-delay: 0.12s; }
+.r-row:nth-child(3) { animation-delay: 0.19s; }
+.r-row:nth-child(4) { animation-delay: 0.26s; }
+
+.r-icon { font-size: 24px; width: 30px; text-align: center; flex-shrink: 0; }
+.r-label { flex: 1; color: var(--blue-dark); font-size: 16px; font-weight: 700; }
+.r-val { color: var(--blue-dark); font-size: 26px; font-weight: 900; }
+
+.btn-solid {
+  background: var(--blue-dark);
+  color: var(--cream);
+  border: none;
+  border-radius: 18px;
+  padding: 17px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.1s;
+  text-align: center;
+}
+.btn-solid:active { transform: scale(0.96); }
+
+.btn-soft {
+  background: rgba(26,47,160,0.09);
+  color: var(--blue-dark);
+  border: none;
+  border-radius: 18px;
+  padding: 17px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.1s;
+  text-align: center;
+}
+.btn-soft:active { transform: scale(0.96); }
+
+.btn-prev {
+  background: var(--blue-dark);
+  color: var(--cream);
+  border: none;
+  border-radius: 18px;
+  padding: 17px;
+  width: 100%;
+  font-family: 'Nunito', sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.1s;
+  text-align: center;
+}
+.btn-prev:active { transform: scale(0.96); }
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div class="screen active" id="splash">
+  <div id="splashLogoWrap">
+    <svg id="splashSVG" viewBox="738 1234 1499 578" xmlns="http://www.w3.org/2000/svg" style="display:block">
+      <path fill="#ebded1" d="M961.09,1633.63c0-21.74,5.75-47.31,13.42-75.44-15.98,2.56-31.96,4.48-45.39,5.75-3.84,17.26-5.75,33.88-5.75,49.23,0,23.65,4.47,45.39,17.9,63.93-19.18,22.38-53.7,36.44-92.06,36.44-58.18,0-85.67-35.8-85.67-79.91,0-72.24,54.98-184.12,54.98-281.29,0-20.46-5.75-39.64-12.15-53.7,7.03-12.79,40.92-32.6,71.6-32.6,65.21,0,97.81,36.44,97.81,89.5,0,37.72-10.23,76.72-21.74,115.71,15.98-2.56,32.6-6.39,46.67-11.51,6.39-27.49,10.87-54.98,10.87-81.19s-4.47-51.14-15.98-73.52c12.15-21.74,47.95-39,79.91-39,65.21,0,97.17,36.44,97.17,89.5,0,88.22-56.9,213.53-56.9,278.09,0,14.07,1.92,30.69,9.59,43.47-19.18,22.38-46.67,36.44-87.58,36.44-53.7,0-76.72-35.8-76.72-79.91Z"/>
+      <path fill="#ebded1" d="M1179.73,1468.69c0-56.9,58.18-81.83,134.25-81.83,81.83,0,124.02,41.55,124.02,101.01,0,46.67-24.29,90.78-24.29,146.4,0,25.57,5.75,44.75,15.98,56.26-15.34,15.98-39,23.02-60.73,23.02-28.77,0-47.95-11.51-59.45-28.13-18.54,21.1-46.03,30.69-77.36,30.69-46.67,0-86.31-30.05-86.31-80.55,0-73.52,65.85-104.85,132.97-104.85,15.34,0,31.33,1.92,46.03,5.11.64-3.84.64-8.31.64-12.15,0-14.7-8.95-28.13-34.52-28.13-23.01,0-48.59,14.07-58.18,30.69-29.41,0-53.06-29.41-53.06-57.54ZM1311.43,1583.12c-9.59-2.56-18.54-3.84-26.21-3.84-26.85,0-40.28,14.07-40.28,27.49,0,8.31,7.67,13.42,17.9,13.42,21.1,0,37.72-15.34,48.59-37.08Z"/>
+      <path fill="#ebded1" d="M1760.21,1470.61c0,52.42-30.69,104.85-30.69,165.58,0,23.02,5.75,42.83,15.98,54.34-15.34,15.98-42.19,23.02-70.96,23.02-53.7,0-78.63-30.69-78.63-68.41,0-49.87,37.08-111.24,37.08-143.84,0-8.95-5.75-13.43-11.51-13.43-21.74,0-46.03,67.77-46.03,132.33,0,19.82,3.83,45.39,15.98,59.46-10.87,21.1-41.56,33.88-70.32,33.88-53.7,0-76.72-35.8-76.72-79.91,0-52.42,33.24-117.63,33.24-167.5,0-20.46-5.75-39.64-10.87-47.95,15.98-17.9,42.83-24.93,66.49-24.93,34.52,0,56.9,19.82,66.49,47.31,23.02-30.05,54.34-53.7,87.58-53.7,47.95,0,72.88,28.77,72.88,83.75Z"/>
+      <path fill="#ebded1" d="M1989.71,1517.28c-14.07-24.93-38.36-42.19-54.98-42.19-8.95,0-15.98,5.11-15.98,13.42,0,31.33,92.06,35.16,92.06,119.55,0,62.01-53.7,109.32-138.73,109.32-73.52,0-114.43-37.08-114.43-81.19,0-30.69,11.51-56.9,37.08-74.16,10.23,24.93,34.52,51.14,59.45,51.14,10.87,0,15.34-5.12,15.34-10.87,0-22.38-82.47-37.72-82.47-105.48,0-58.18,46.67-112.52,141.28-112.52,68.41,0,106.76,31.33,106.76,70.32,0,30.05-21.1,56.9-45.39,62.65Z"/>
+      <path fill="#ebded1" d="M2157.21,1634.91c0,23.01,7.03,43.47,17.26,52.42-15.34,15.98-38.36,26.21-67.13,26.21-53.7,0-76.71-35.8-76.71-79.91,0-52.42,33.24-117.63,33.24-167.5,0-20.46-5.75-42.19-13.43-52.42,18.54-19.82,45.39-26.85,69.05-26.85,47.95,0,72.88,28.77,72.88,72.88,0,52.42-35.16,124.66-35.16,175.17ZM2152.73,1259c37.08,0,60.09,23.65,60.09,53.7,0,38.36-33.88,67.77-79.27,67.77-30.69,0-60.09-20.46-60.09-54.98,0-37.72,33.88-66.49,79.27-66.49Z"/>
+    </svg>
+  </div>
+</div>
+
+<!-- ENTER NAME -->
+<div class="screen" id="enter-name">
+  <div class="name-q">Wie darf ich<br>dich nennen?</div>
+  <input class="glass-input" id="nameInput" type="text" placeholder="Dein Name …" autocomplete="off" autocorrect="off" spellcheck="false">
+  <button class="cream-btn" onclick="saveName()">✓ &nbsp;Speichern</button>
+</div>
+
+<!-- WELCOME -->
+<div class="screen" id="welcome">
+  <div class="welcome-inner">
+    <svg class="welcome-h" viewBox="776 712 1477 1799" xmlns="http://www.w3.org/2000/svg">
+      <path fill="#ebded1" d="M1464.58,1971c0-72.95,19.31-158.79,45.06-253.21-53.65,8.59-107.29,15.02-152.36,19.32-12.87,57.94-19.31,113.73-19.31,165.23,0,79.39,15.02,152.35,60.08,214.58-64.38,75.1-180.25,122.32-309,122.32-195.27,0-287.54-120.16-287.54-268.23,0-242.48,184.54-618,184.54-944.16,0-68.67-19.31-133.04-40.77-180.25,23.61-42.92,137.33-109.44,240.33-109.44,218.87,0,328.31,122.32,328.31,300.42,0,126.6-34.33,257.5-72.96,388.39,53.65-8.58,109.44-21.46,156.65-38.62,21.46-92.27,36.48-184.54,36.48-272.52s-15.02-171.66-53.65-246.77c40.77-72.96,160.94-130.9,268.23-130.9,218.87,0,326.17,122.32,326.17,300.42,0,296.13-190.98,716.71-190.98,933.43,0,47.21,6.44,103,32.19,145.92-64.38,75.1-156.65,122.32-293.98,122.32-180.25,0-257.5-120.16-257.5-268.23Z"/>
+    </svg>
+    <div class="welcome-title">Mein<br>Arbeitstag</div>
+    <div class="welcome-sub" id="welcomeSub">Hallo!</div>
+    <div class="progress-bar">
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="screen" id="main">
+  <div class="main-scroll">
+    <div class="main-top">
+      <div class="main-greeting" id="mainGreeting">HALLO!</div>
+      <div class="main-title">Mein<br>Arbeitstag</div>
+      <div class="date-nav">
+        <button class="nav-btn" id="btnPrev" onclick="prevDay()">&#8249;</button>
+        <div class="main-date" id="mainDate"></div>
+        <button class="nav-btn ghost" id="btnNext" onclick="nextDay()">&#8250;</button>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card card-blue">
+        <div class="card-icon">📦</div>
+        <div class="card-row">
+          <button class="c-btn" onclick="change('kartons',-1)">−</button>
+          <div class="c-num" id="nKartons">0</div>
+          <button class="c-btn" onclick="change('kartons',1)">+</button>
+        </div>
+        <div class="card-lbl">Kartons verpackt</div>
+      </div>
+      <div class="card card-indigo">
+        <div class="card-icon">💪</div>
+        <div class="card-row">
+          <button class="c-btn" onclick="change('pipes',-1)">−</button>
+          <div class="c-num" id="nPipes">0</div>
+          <button class="c-btn" onclick="change('pipes',1)">+</button>
+        </div>
+        <div class="card-lbl">SlashPipes fertig</div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card card-teal">
+        <div class="card-icon">🤍</div>
+        <div class="card-row">
+          <button class="c-btn" onclick="change('helfen',-1)">−</button>
+          <div class="c-num" id="nHelfen">0</div>
+          <button class="c-btn" onclick="change('helfen',1)">+</button>
+        </div>
+        <div class="card-lbl">Mal geholfen</div>
+      </div>
+      <div class="card card-violet" style="justify-content:space-between">
+        <div class="mood-opts" style="width:100%;flex:1;align-items:center;justify-content:center">
+          <div class="mood-opt" onclick="setMood(1,this)">😐</div>
+          <div class="mood-opt" onclick="setMood(2,this)">🙂</div>
+          <div class="mood-opt" onclick="setMood(3,this)">😁</div>
+        </div>
+        <div class="card-lbl">Wie war dein Tag?</div>
+      </div>
+    </div>
+
+    <button class="erledigt" onclick="saveDay()">✓&nbsp; Erledigt</button>
+  </div>
+</div>
+
+<!-- REPORT -->
+<div class="screen" id="report">
+  <div class="report-scroll">
+    <div class="report-top">
+      <div class="report-tag">Tagesbericht</div>
+      <div class="report-hi" id="reportHi">Super gemacht!</div>
+      <div class="report-date" id="reportDate"></div>
+    </div>
+    <div class="report-body">
+      <div class="report-card">
+        <div class="r-row"><div class="r-icon">📦</div><div class="r-label">Kartons verpackt</div><div class="r-val" id="rK">0</div></div>
+        <div class="r-row"><div class="r-icon">💪</div><div class="r-label">SlashPipes fertig</div><div class="r-val" id="rP">0</div></div>
+        <div class="r-row"><div class="r-icon">🤍</div><div class="r-label">Mal geholfen</div><div class="r-val" id="rH">0</div></div>
+        <div class="r-row"><div class="r-icon">😊</div><div class="r-label">Wie war dein Tag?</div><div class="r-val" id="rM">—</div></div>
+      </div>
+      <div class="report-btns">
+        <button class="btn-solid" onclick="goBackFromReport()">← Zurück</button>
+        <button class="btn-soft" onclick="resetDay()">Tag zurücksetzen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const S = { get: k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }, set: (k,v) => localStorage.setItem(k,JSON.stringify(v)) };
+
+let userName = S.get('hansi_name') || '';
+let days = S.get('hansi_days') || {};
+let viewing = todayKey();
+let reportingKey = '';
+
+function todayKey() { const d = new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+
+function offsetKey(base, delta) {
+  const p = base.split('-');
+  const d = new Date(+p[0], +p[1]-1, +p[2]);
+  d.setDate(d.getDate()+delta);
+  return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+}
+
+function getDay(k) { return days[k] || {kartons:0,pipes:0,helfen:0,mood:null,done:false}; }
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active', 'slide-out');
+  });
+  const next = document.getElementById(id);
+  next.classList.add('active');
+  const scroll = next.querySelector('.main-scroll, .report-scroll');
+  if (scroll) scroll.scrollTop = 0;
+}
+
+// SPLASH
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    if (!userName) show('enter-name');
+    else runWelcome();
+  }, 2200);
+});
+
+// NAME
+function saveName() {
+  const v = document.getElementById('nameInput').value.trim();
+  if (!v) { document.getElementById('nameInput').focus(); return; }
+  userName = v; S.set('hansi_name', userName);
+  runWelcome();
+}
+document.getElementById('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') saveName(); });
+
+// WELCOME
+function runWelcome() {
+  document.getElementById('welcomeSub').textContent = 'Hallo, ' + userName + '!';
+  show('welcome');
+  setTimeout(goToMain, 2400);
+}
+
+// MAIN
+function goToMain() {
+  viewing = todayKey();
+  renderMain();
+  show('main');
+}
+
+function renderMain() {
+  const data = getDay(viewing);
+  const isToday = viewing === todayKey();
+  const yesterdayKey = offsetKey(todayKey(), -1);
+
+  document.getElementById('mainGreeting').textContent = 'HALLO, ' + userName.toUpperCase() + '!';
+  document.getElementById('mainDate').textContent = fmtDate(viewing);
+  document.getElementById('nKartons').textContent = data.kartons;
+  document.getElementById('nPipes').textContent = data.pipes;
+  document.getElementById('nHelfen').textContent = data.helfen;
+
+  // mood
+  const moods = ['','😐','🙂','😁'];
+  document.querySelectorAll('.mood-opt').forEach((el,i) => el.classList.toggle('on', data.mood === i+1));
+  const moodIcon = document.getElementById('moodIcon');
+  if (moodIcon) moodIcon.textContent = data.mood ? moods[data.mood] : '😐';
+
+  // show prev button only on today (goes to yesterday)
+  // show next button only when viewing yesterday (goes back to today)
+  document.getElementById('btnPrev').classList.toggle('ghost', !isToday);
+  document.getElementById('btnNext').classList.toggle('ghost', isToday);
+}
+
+function prevDay() {
+  // only go to yesterday
+  viewing = offsetKey(todayKey(), -1);
+  const data = getDay(viewing);
+  if (data.done) {
+    showReport(viewing);
+  } else {
+    renderMain();
+    show('main');
+  }
+}
+
+function nextDay() {
+  viewing = todayKey();
+  renderMain();
+  show('main');
+}
+
+function change(key, delta) {
+  const data = getDay(viewing);
+  data[key] = Math.max(0, data[key]+delta);
+  days[viewing] = data; S.set('hansi_days', days);
+  const ids = {kartons:'nKartons',pipes:'nPipes',helfen:'nHelfen'};
+  const el = document.getElementById(ids[key]);
+  el.textContent = data[key];
+  el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
+  if (navigator.vibrate) navigator.vibrate(25);
+}
+
+function setMood(val, btn) {
+  const data = getDay(viewing);
+  data.mood = val;
+  days[viewing] = data;
+  S.set('hansi_days', days);
+  document.querySelectorAll('.mood-opt').forEach((el,i) => el.classList.toggle('on', i+1===val));
+}
+
+function saveDay() {
+  const data = getDay(viewing);
+  data.done = true;
+  days[viewing] = data;
+  S.set('hansi_days', days);
+  showReport(viewing);
+}
+
+function animateCount(elId, target) {
+  const el = document.getElementById(elId);
+  if (!el || typeof target !== 'number') return;
+  const duration = 600;
+  const start = performance.now();
+  function step(now) {
+    const progress = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.round(ease * target);
+    if (progress < 1) requestAnimationFrame(step);
+    else el.textContent = target;
+  }
+  requestAnimationFrame(step);
+}
+
+// REPORT
+function showReport(key) {
+  reportingKey = key;
+  const data = getDay(key);
+  const moods = ['','😐','🙂','😁'];
+  document.getElementById('reportHi').innerHTML = 'Super gemacht,<br>' + userName + '!';
+  document.getElementById('reportDate').textContent = fmtDate(key);
+  document.getElementById('rM').textContent = moods[data.mood] || '—';
+  // set initial to 0 before animating
+  ['rK','rP','rH'].forEach(id => { document.getElementById(id).textContent = '0'; });
+  show('report');
+  // animate numbers after screen appears
+  setTimeout(() => {
+    animateCount('rK', data.kartons);
+    animateCount('rP', data.pipes);
+    animateCount('rH', data.helfen);
+  }, 350);
+}
+
+function goBackFromReport() {
+  // If reporting today → try to go to yesterday
+  // If reporting yesterday → go back to today
+  const todayK = todayKey();
+  const yesterdayK = offsetKey(todayK, -1);
+
+  if (reportingKey === todayK) {
+    // came from today's report — check yesterday
+    const yData = getDay(yesterdayK);
+    if (days[yesterdayK]) {
+      // yesterday exists
+      if (yData.done) {
+        // yesterday is done → show yesterday's report
+        showReport(yesterdayK);
+      } else {
+        // yesterday not done → go fill it in
+        viewing = yesterdayK;
+        renderMain();
+        show('main');
+      }
+    } else {
+      // no yesterday data at all → go to today
+      viewing = todayK;
+      renderMain();
+      show('main');
+    }
+  } else {
+    // came from yesterday's report → go back to today
+    viewing = todayK;
+    renderMain();
+    show('main');
+  }
+}
+
+function resetDay() {
+  days[viewing] = {kartons:0,pipes:0,helfen:0,mood:null,done:false};
+  S.set('hansi_days', days);
+  renderMain();
+  show('main');
+}
+
+// DATE FORMAT
+function fmtDate(key) {
+  const p = key.split('-');
+  const d = new Date(+p[0], +p[1]-1, +p[2]);
+  const wd = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
+  const mn = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+  return wd[d.getDay()]+', '+d.getDate()+'. '+mn[d.getMonth()]+' '+d.getFullYear();
+}
+
+// midnight refresh
+const n = new Date();
+setTimeout(() => { renderMain(); setInterval(renderMain,86400000); }, new Date(n.getFullYear(),n.getMonth(),n.getDate()+1)-n);
+</script>
+</body>
+</html>

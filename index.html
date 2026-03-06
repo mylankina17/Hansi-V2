@@ -24,7 +24,7 @@
   --muted: rgba(235,222,209,0.5);
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; touch-action: manipulation; }
 
 html, body {
   font-family: 'Nunito', sans-serif;
@@ -509,8 +509,107 @@ html, body {
 .erledigt:active { transform: scale(0.97); }
 
 /* ════════════════════════════
-   REPORT
+   WEEK BAR
 ════════════════════════════ */
+.week-bar {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding: 4px 0;
+}
+
+.week-dot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.week-dot-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1.5px solid rgba(235,222,209,0.2);
+  background: rgba(255,255,255,0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--cream);
+  transition: background 0.3s, border-color 0.3s;
+  pointer-events: none;
+}
+
+.week-dot-circle.done {
+  background: rgba(235,222,209,0.18);
+  border-color: rgba(235,222,209,0.45);
+}
+
+.week-dot-circle.today {
+  border-color: var(--cream);
+  border-width: 2px;
+}
+
+.week-dot-label {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* ════════════════════════════
+   ACHIEVEMENT
+════════════════════════════ */
+#achievement {
+  background: linear-gradient(175deg, #3857B2 0%, #133188 100%);
+  z-index: 40;
+}
+
+.ach-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 32px;
+  text-align: center;
+  animation: achPop 0.6s cubic-bezier(0.34,1.4,0.64,1) both;
+}
+
+@keyframes achPop {
+  from { opacity: 0; transform: scale(0.7) translateY(40px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.ach-emoji {
+  font-size: 80px;
+  line-height: 1;
+  margin-bottom: 20px;
+  animation: achBounce 0.8s cubic-bezier(0.34,1.6,0.64,1) 0.2s both;
+}
+
+@keyframes achBounce {
+  from { transform: scale(0); }
+  to   { transform: scale(1); }
+}
+
+.ach-title {
+  color: var(--cream);
+  font-size: 32px;
+  font-weight: 900;
+  line-height: 1.2;
+  margin-bottom: 12px;
+}
+
+.ach-desc {
+  color: rgba(235,222,209,0.75);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+
 #report {
   background: var(--cream-bg);
   justify-content: flex-start;
@@ -760,6 +859,8 @@ html, body {
       </div>
     </div>
 
+    <div class="week-bar" id="weekBar"></div>
+
     <button class="erledigt" onclick="saveDay()">✓&nbsp; Erledigt</button>
   </div>
 </div>
@@ -788,6 +889,17 @@ html, body {
         <button class="btn-soft" onclick="resetDay()">Tag zurücksetzen</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ACHIEVEMENT -->
+<div class="screen" id="achievement">
+  <canvas id="confettiCanvas" style="position:fixed;inset:0;pointer-events:none;z-index:100;width:100%;height:100%"></canvas>
+  <div class="ach-inner">
+    <div class="ach-emoji" id="achEmoji">🏆</div>
+    <div class="ach-title" id="achTitle">Super!</div>
+    <div class="ach-desc" id="achDesc"></div>
+    <button class="cream-btn" style="max-width:260px;margin-top:32px" onclick="closeAchievement()">Weiter 🎉</button>
   </div>
 </div>
 
@@ -876,6 +988,7 @@ function renderMain() {
   // show next button only when viewing yesterday (goes back to today)
   document.getElementById('btnPrev').classList.toggle('ghost', !isToday);
   document.getElementById('btnNext').classList.toggle('ghost', isToday);
+  renderWeekBar();
 }
 
 function prevDay() {
@@ -920,7 +1033,8 @@ function saveDay() {
   data.done = true;
   days[viewing] = data;
   S.set('hansi_days', days);
-  showReport(viewing);
+  // small delay so days is fully committed before checking totals
+  setTimeout(() => checkAchievements(() => showReport(viewing)), 50);
 }
 
 function animateCount(elId, target) {
@@ -936,6 +1050,150 @@ function animateCount(elId, target) {
     else el.textContent = target;
   }
   requestAnimationFrame(step);
+}
+
+// ════════════════════════════
+// ACHIEVEMENTS
+// ════════════════════════════
+const ACHIEVEMENTS = [
+  { id:'k5',   emoji:'📦', title:'Erster Schritt!',     desc:'5 Kartons verpackt!',    check: t => t.kartons >= 5 },
+  { id:'k20',  emoji:'📦', title:'Karton-Profi!',       desc:'20 Kartons verpackt!',   check: t => t.kartons >= 20 },
+  { id:'k50',  emoji:'🏆', title:'Karton-Champion!',    desc:'50 Kartons verpackt!',   check: t => t.kartons >= 50 },
+  { id:'k100', emoji:'⭐', title:'Karton-Star!',        desc:'100 Kartons verpackt!',  check: t => t.kartons >= 100 },
+  { id:'k200', emoji:'👑', title:'Karton-König!',       desc:'200 Kartons verpackt!',  check: t => t.kartons >= 200 },
+  { id:'p5',   emoji:'💪', title:'Stark!',              desc:'5 SlashPipes fertig!',   check: t => t.pipes >= 5 },
+  { id:'p20',  emoji:'💪', title:'Super stark!',        desc:'20 SlashPipes fertig!',  check: t => t.pipes >= 20 },
+  { id:'p50',  emoji:'🔥', title:'Unaufhaltbar!',       desc:'50 SlashPipes fertig!',  check: t => t.pipes >= 50 },
+  { id:'p100', emoji:'⚡', title:'Blitzschnell!',       desc:'100 SlashPipes fertig!', check: t => t.pipes >= 100 },
+  { id:'p200', emoji:'🚀', title:'Rakete!',             desc:'200 SlashPipes fertig!', check: t => t.pipes >= 200 },
+  { id:'h3',   emoji:'🤍', title:'Guter Freund!',       desc:'3 Mal geholfen!',        check: t => t.helfen >= 3 },
+  { id:'h7',   emoji:'💛', title:'Super-Freund!',       desc:'7 Mal geholfen!',        check: t => t.helfen >= 7 },
+  { id:'h15',  emoji:'🧡', title:'Held des Tages!',     desc:'15 Mal geholfen!',       check: t => t.helfen >= 15 },
+  { id:'h30',  emoji:'❤️', title:'Teamheld!',           desc:'30 Mal geholfen!',       check: t => t.helfen >= 30 },
+  { id:'h50',  emoji:'🦸', title:'Superheld!',          desc:'50 Mal geholfen!',       check: t => t.helfen >= 50 },
+  { id:'m2',   emoji:'😊', title:'Gute Laune!',         desc:'2 Tage gute Stimmung!',  check: t => t.moodStreak >= 2 },
+  { id:'m4',   emoji:'😁', title:'Sonnenschein!',       desc:'4 Tage gute Stimmung!',  check: t => t.moodStreak >= 4 },
+  { id:'m7',   emoji:'🌟', title:'Immer positiv!',      desc:'7 Tage gute Stimmung!',  check: t => t.moodStreak >= 7 },
+  { id:'m14',  emoji:'✨', title:'Stimmungs-König!',    desc:'14 Tage gute Stimmung!', check: t => t.moodStreak >= 14 },
+  { id:'d2',   emoji:'📅', title:'2 Tage dabei!',       desc:'2 Tage in Folge!',       check: t => t.streak >= 2 },
+  { id:'d4',   emoji:'🗓️', title:'4 Tage am Stück!',   desc:'4 Tage in Folge!',       check: t => t.streak >= 4 },
+  { id:'d7',   emoji:'🎯', title:'Eine Woche!',         desc:'7 Tage in Folge!',       check: t => t.streak >= 7 },
+  { id:'d14',  emoji:'💎', title:'Zwei Wochen!',        desc:'14 Tage in Folge!',      check: t => t.streak >= 14 },
+  { id:'d21',  emoji:'🏅', title:'Drei Wochen!',        desc:'21 Tage in Folge!',      check: t => t.streak >= 21 },
+];
+
+function getTotals() {
+  let kartons = 0, pipes = 0, helfen = 0, streak = 0, moodStreak = 0;
+  Object.values(days).forEach(d => {
+    if (d.done) { kartons += d.kartons||0; pipes += d.pipes||0; helfen += d.helfen||0; }
+  });
+  let k = todayKey();
+  while (days[k] && getDay(k).done) { streak++; k = offsetKey(k,-1); }
+  k = todayKey();
+  while (days[k] && getDay(k).done && getDay(k).mood >= 2) { moodStreak++; k = offsetKey(k,-1); }
+  return { kartons, pipes, helfen, streak, moodStreak };
+}
+
+let achQueue = [];
+let afterAch = null;
+
+function checkAchievements(callback) {
+  const unlocked = S.get('hansi_ach') || [];
+  const totals = getTotals();
+  const newOnes = ACHIEVEMENTS.filter(a => !unlocked.includes(a.id) && a.check(totals));
+  if (newOnes.length === 0) { callback(); return; }
+  S.set('hansi_ach', [...unlocked, ...newOnes.map(a => a.id)]);
+  achQueue = [...newOnes];
+  afterAch = callback;
+  showNextAch();
+}
+
+function showNextAch() {
+  if (achQueue.length === 0) { afterAch && afterAch(); return; }
+  const ach = achQueue.shift();
+  document.getElementById('achEmoji').textContent = ach.emoji;
+  document.getElementById('achTitle').textContent = ach.title;
+  document.getElementById('achDesc').textContent  = ach.desc;
+  show('achievement');
+  startConfetti();
+  if (navigator.vibrate) navigator.vibrate([50,30,50,30,100]);
+}
+
+function closeAchievement() {
+  stopConfetti();
+  showNextAch();
+}
+
+// CONFETTI
+let confettiRunning = false, confettiParticles = [], confettiRAF = null;
+
+function startConfetti() {
+  const canvas = document.getElementById('confettiCanvas');
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  const ctx = canvas.getContext('2d');
+  confettiRunning = true; confettiParticles = [];
+  const colors = ['#ebded1','#3857B2','#a78bfa','#60a5fa','#f9a8d4','#fde68a','#6ee7b7'];
+  for (let b = 0; b < 3; b++) {
+    setTimeout(() => {
+      for (let i = 0; i < 40; i++) {
+        confettiParticles.push({
+          x: canvas.width*(0.2+Math.random()*0.6), y: canvas.height+10,
+          vx: (Math.random()-0.5)*8, vy: -(10+Math.random()*10),
+          color: colors[Math.floor(Math.random()*colors.length)],
+          size: 6+Math.random()*6, rot: Math.random()*360,
+          rotV: (Math.random()-0.5)*8,
+          shape: Math.random()>0.5?'rect':'circle', life: 1,
+        });
+      }
+    }, b*300);
+  }
+  function loop() {
+    if (!confettiRunning) { ctx.clearRect(0,0,canvas.width,canvas.height); return; }
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    confettiParticles = confettiParticles.filter(p => p.life > 0);
+    confettiParticles.forEach(p => {
+      p.x+=p.vx; p.y+=p.vy; p.vy+=0.3; p.vx*=0.99; p.rot+=p.rotV; p.life-=0.008;
+      ctx.save(); ctx.globalAlpha=Math.max(0,p.life);
+      ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180); ctx.fillStyle=p.color;
+      if (p.shape==='rect') ctx.fillRect(-p.size/2,-p.size/4,p.size,p.size/2);
+      else { ctx.beginPath(); ctx.arc(0,0,p.size/2,0,Math.PI*2); ctx.fill(); }
+      ctx.restore();
+    });
+    confettiRAF = requestAnimationFrame(loop);
+  }
+  loop();
+}
+
+function stopConfetti() {
+  confettiRunning = false;
+  if (confettiRAF) cancelAnimationFrame(confettiRAF);
+  const canvas = document.getElementById('confettiCanvas');
+  canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
+}
+
+// WEEK BAR
+const DAY_LABELS = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+function renderWeekBar() {
+  const bar = document.getElementById('weekBar');
+  const todayDate = new Date();
+  const todayK = todayKey();
+  const dow = todayDate.getDay();
+  bar.innerHTML = '';
+  [1,2,3,4,5].forEach(wd => {
+    const diff = wd - dow;
+    const d = new Date(todayDate); d.setDate(todayDate.getDate()+diff);
+    const key = d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+    const done = days[key] && getDay(key).done;
+    const isToday = key === todayK;
+    const isFuture = diff > 0;
+    const wrap = document.createElement('div'); wrap.className = 'week-dot';
+    const circle = document.createElement('div');
+    circle.className = 'week-dot-circle'+(done?' done':'')+(isToday?' today':'');
+    circle.textContent = done ? '✓' : '';
+    const label = document.createElement('div'); label.className = 'week-dot-label';
+    label.textContent = DAY_LABELS[wd];
+    wrap.appendChild(circle); wrap.appendChild(label); bar.appendChild(wrap);
+  });
 }
 
 // REPORT

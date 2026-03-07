@@ -966,7 +966,7 @@ html, body {
 </div>
 
 <!-- RESET CONFIRM MODAL -->
-<div class="modal-backdrop" id="resetConfirm" onclick="hideResetConfirm()">
+<div class="modal-backdrop" id="resetConfirm" style="display:none" onclick="hideResetConfirm()">
   <div class="modal-box" onclick="event.stopPropagation()">
     <div class="modal-title">Tag zurücksetzen?</div>
     <div class="modal-desc">Alle Zahlen werden auf 0 gesetzt.</div>
@@ -1104,6 +1104,26 @@ function change(key, delta) {
   el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
   if (navigator.vibrate) navigator.vibrate(25);
 }
+
+// Visual feedback for +/- buttons
+document.querySelectorAll('.c-btn').forEach(btn => {
+  btn.addEventListener('touchstart', () => {
+    btn.style.background = 'rgba(255,255,255,0.3)';
+    btn.style.transform = 'scale(0.88)';
+    const card = btn.closest('.card');
+    if (card) {
+      card.style.transition = 'transform 0.15s cubic-bezier(0.34,1.8,0.64,1)';
+      card.style.transform = 'scale(1.04)';
+      setTimeout(() => { card.style.transform = ''; }, 180);
+    }
+  }, {passive: true});
+  btn.addEventListener('touchend', () => {
+    setTimeout(() => {
+      btn.style.background = '';
+      btn.style.transform = '';
+    }, 120);
+  }, {passive: true});
+});
 
 function setMood(val, btn) {
   const data = getDay(viewing);
@@ -1353,12 +1373,10 @@ function goBackFromReport() {
 }
 
 function showResetConfirm() {
-  document.getElementById('resetConfirm').classList.add('visible');
-  document.getElementById('btnReset').style.display = 'none';
+  document.getElementById('resetConfirm').style.display = 'flex';
 }
 function hideResetConfirm() {
-  document.getElementById('resetConfirm').classList.remove('visible');
-  document.getElementById('btnReset').style.display = '';
+  document.getElementById('resetConfirm').style.display = 'none';
 }
 
 function resetDay() {

@@ -1,0 +1,22 @@
+{
+  "name": "Hansi – Mein Arbeitstag",
+  "short_name": "Hansi",
+  "description": "Mein täglicher Arbeitsbegleiter",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#133188",
+  "theme_color": "#133188",
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/192x192/133188/ebded1?text=H",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://via.placeholder.com/512x512/133188/ebded1?text=H",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
